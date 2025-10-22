@@ -10,8 +10,6 @@ import streamlit as st
 ATTACK_OPTIONS = [
     "Birthday Attack",
     "Pollard's Rho",
-    "Length Extension",
-    "Avalanche Test",
 ]
 
 
@@ -29,22 +27,6 @@ class PollardParameters:
     bits: int
     start: int
     max_steps: int
-
-
-@dataclass
-class AvalancheParameters:
-    bits: int
-    message: bytes
-    sample_bit_index: int
-
-
-@dataclass
-class LengthExtensionParameters:
-    original_message: bytes
-    appended_message: bytes
-    key_length_guess: int
-    observed_digest: Optional[str]
-    secret: Optional[bytes]
 
 
 def attack_selector() -> str:
@@ -90,71 +72,16 @@ def pollard_controls(default_bits: int = 16) -> PollardParameters:
     return PollardParameters(bits=bits, start=start, max_steps=max_steps)
 
 
-def avalanche_controls(default_bits: int = 16) -> AvalancheParameters:
-    bits = st.slider("Hash bit length", 8, 32, default_bits, key="avalanche-bits")
-    message_text = st.text_area(
-        "Message (ASCII)",
-        value="hello world",
-        key="avalanche-message",
-        help="Message used to evaluate the avalanche effect",
-    )
-    message = message_text.encode("utf-8")
-    total_bits = len(message) * 8
-    sample_bit = st.slider("Sample bit to flip", 0, total_bits - 1, total_bits // 2, key="avalanche-sample-bit")
-    return AvalancheParameters(bits=bits, message=message, sample_bit_index=sample_bit)
-
-
-def length_extension_controls() -> LengthExtensionParameters:
-    original = st.text_area(
-        "Original message",
-        value="transfer=1000&to=bob",
-        key="length-original",
-    )
-    append = st.text_area(
-        "Appended data",
-        value="&to=mallory",
-        key="length-append",
-    )
-    key_guess = st.number_input(
-        "Key length guess (bytes)", min_value=0, max_value=128, value=8, step=1, key="length-key-guess"
-    )
-    digest = st.text_input(
-        "Observed digest (hex)",
-        value="",
-        key="length-digest",
-        help="Digest of secret||original message. Provide if known.",
-    )
-    secret_text = st.text_input(
-        "(Optional) actual secret to verify",
-        value="",
-        help="Provide to verify the forged digest matches the real tag",
-        key="length-secret",
-    )
-    secret = secret_text.encode("utf-8") if secret_text else None
-    observed_digest = digest.strip() or None
-    return LengthExtensionParameters(
-        original_message=original.encode("utf-8"),
-        appended_message=append.encode("utf-8"),
-        key_length_guess=key_guess,
-        observed_digest=observed_digest,
-        secret=secret,
-    )
-
-
 def info_box(label: str, value: str) -> None:
     st.metric(label, value)
 
 
 __all__ = [
     "ATTACK_OPTIONS",
-    "AvalancheParameters",
     "BirthdayParameters",
-    "LengthExtensionParameters",
     "PollardParameters",
     "attack_selector",
-    "avalanche_controls",
     "birthday_controls",
     "info_box",
-    "length_extension_controls",
     "pollard_controls",
 ]

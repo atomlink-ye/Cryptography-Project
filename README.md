@@ -2,10 +2,9 @@
 
 Interactive Streamlit app that explains classic hash-function behaviour through simulations:
 
-- observe the avalanche effect of bit flips,
 - watch birthday collisions emerge,
 - follow Pollard’s tortoise and hare pointers, and
-- demonstrate a Merkle–Damgård length-extension forgery.
+- explore interactive simulations of classic hash collisions.
 
 The project is tailored for lectures and workshops where quick, visual intuition matters.
 
@@ -18,7 +17,7 @@ The project is tailored for lectures and workshops where quick, visual intuition
 | Language        | Python 3.11                                                    |
 | UI              | Streamlit + Plotly                                             |
 | Data            | pandas, numpy                                                  |
-| Core algorithms | `core/` module (toy hash, birthday, pollard, length extension) |
+| Core algorithms | `core/` module (toy hash, birthday, pollard) |
 
 ---
 
@@ -67,8 +66,6 @@ Further architectural notes live in [`docs.md`](docs.md).
 
 - **Birthday Attack:** scatter of trials-to-collision plus theoretical curve.
 - **Pollard’s Rho:** pointer trajectories and state transition table.
-- **Avalanche Test:** flip each input bit and chart output changes.
-- **Length Extension:** forge a new digest given an observed tag or known secret.
 
 ---
 

@@ -1,8 +1,8 @@
 """Visualization helpers for the cryptography explorer."""
-from . import graphs, animator, ui_components
+from . import birthday_views, pollard_views, ui_components
 
 __all__ = [
-    "graphs",
-    "animator",
+    "birthday_views",
+    "pollard_views",
     "ui_components",
 ]
