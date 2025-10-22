@@ -61,6 +61,8 @@ def show_birthday(params: BirthdayParameters) -> None:
     if data.empty:
         st.info("No collision data available")
         return
+
+    # Show collision values on hover
     fig = px.scatter(
         data,
         x="trials",
@@ -68,9 +70,12 @@ def show_birthday(params: BirthdayParameters) -> None:
         color="collision",
         labels={"trials": "Trials until collision", "run": "Simulation run"},
         title="Birthday collision search trials",
+        hover_data=["collision_value"],
+        color_discrete_map={True: "dodgerblue", False: "lightblue"},
     )
     st.plotly_chart(fig, use_container_width=True)
 
+    # Add theoretical probability curve
     probability = birthday_probability_curve(params.bits, params.max_trials)
     prob_fig = go.Figure()
     prob_fig.add_trace(
@@ -81,6 +86,20 @@ def show_birthday(params: BirthdayParameters) -> None:
             mode="lines",
         )
     )
+
+    # Add 50% collision probability marker
+    # Approximation: sqrt(2 * 2^n * ln(1/(1-p)))
+    p = 0.5
+    birthday_bound = math.sqrt(2 * (2**params.bits) * math.log(1 / (1 - p)))
+    prob_fig.add_vline(
+        x=birthday_bound,
+        line_width=2,
+        line_dash="dash",
+        line_color="red",
+        annotation_text="50% probability",
+        annotation_position="top left",
+    )
+
     prob_fig.update_layout(
         title="Collision probability vs trials",
         xaxis_title="Trials",
@@ -91,7 +110,7 @@ def show_birthday(params: BirthdayParameters) -> None:
     # Summary metrics
     average_trials = data["trials"].mean()
     st.caption(
-        f"Average trials to collision across {params.runs} runs: {average_trials:,.0f}"
+        f"Average trials to collision across {params.runs} runs: {average_trials:,.0f} (theoretical: {birthday_bound:,.0f})"
     )
 
 
@@ -108,24 +127,40 @@ def avalanche_dataframe(params: AvalancheParameters) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _highlight_diff(s1: str, s2: str, color: str = "red") -> str:
+    """Highlights differences between two strings with Streamlit color syntax."""
+    diff_s = ""
+    for char1, char2 in zip(s1, s2):
+        if char1 != char2:
+            diff_s += f":{color}[{char2}]"
+        else:
+            diff_s += char2
+    return diff_s
+
 def show_avalanche(params: AvalancheParameters) -> None:
     data = avalanche_dataframe(params)
+    data["color"] = np.where(data["bit"] == params.sample_bit_index, "red", "blue")
+
     fig = px.bar(
         data,
         x="bit",
         y="fraction",
+        color="color",
         labels={"bit": "Flipped bit", "fraction": "Fraction of output bits changed"},
         title="Avalanche effect across flipped bits",
     )
+    fig.add_hline(y=0.5, line_width=2, line_dash="dash", line_color="red")
     st.plotly_chart(fig, use_container_width=True)
 
     st.write("Sample hashes")
-    sample_index = len(params.message) * 4 // 3
-    sample_result = avalanche_test(params.message, sample_index, bits=params.bits)
-    st.code(
-        f"Baseline: {sample_result.baseline_hash:#x}\nFlipped:  {sample_result.flipped_hash:#x}",
-        language="text",
-    )
+    sample_result = avalanche_test(params.message, params.sample_bit_index, bits=params.bits)
+
+    baseline_hex = f"{sample_result.baseline_hash:#0{params.bits//4+2}x}"
+    flipped_hex = f"{sample_result.flipped_hash:#0{params.bits//4+2}x}"
+    diff_str = _highlight_diff(baseline_hex, flipped_hex)
+
+    st.write(f"Baseline: `{baseline_hex}`")
+    st.write(f"Flipped:  `{diff_str}`")
 
 
 def difficulty_scaling_dataframe(bit_sizes: Iterable[int]) -> pd.DataFrame:
@@ -182,9 +217,15 @@ def show_length_extension(
     )
 
     st.subheader("Length extension forgery")
-    st.write(f"Original digest (used for forging): {digest}")
+    st.info(
+        f"A new digest was forged for an extended message by guessing a key length of **{params.key_length_guess}** bytes. "
+        f"The original digest **{digest}** was used to compute the new digest **{forged.forged_digest}** without needing the secret key. "
+        f"This was achieved by adding **{len(forged.glue_padding)}** bytes of glue padding."
+    )
+
     st.write("Forged message")
     st.code(forged.forged_message)
+    st.write(f"Original digest (used for forging): {digest}")
     st.write(f"Forged digest: {forged.forged_digest}")
     st.caption(f"Glue padding length: {len(forged.glue_padding)} bytes")
 

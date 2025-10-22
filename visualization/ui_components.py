@@ -35,6 +35,7 @@ class PollardParameters:
 class AvalancheParameters:
     bits: int
     message: bytes
+    sample_bit_index: int
 
 
 @dataclass
@@ -63,14 +64,13 @@ def _parse_optional_seed(value: str) -> Optional[int]:
 
 
 def birthday_controls(default_bits: int = 16) -> BirthdayParameters:
-    st.sidebar.subheader("Birthday Attack")
-    bits = st.sidebar.slider("Hash bit length", 8, 32, default_bits, key="birthday-bits")
-    runs = st.sidebar.slider("Simulation runs", 5, 200, 50, key="birthday-runs")
-    max_trials = st.sidebar.number_input("Max trials per run", min_value=1, max_value=1_000_000, value=10000, step=1000, key="birthday-max")
-    message_length = st.sidebar.number_input(
+    bits = st.slider("Hash bit length", 8, 32, default_bits, key="birthday-bits")
+    runs = st.slider("Simulation runs", 5, 200, 50, key="birthday-runs")
+    max_trials = st.number_input("Max trials per run", min_value=1, max_value=1_000_000, value=10000, step=1000, key="birthday-max")
+    message_length = st.number_input(
         "Message size (bytes)", min_value=1, max_value=64, value=8, step=1, key="birthday-msg-len"
     )
-    seed_text = st.sidebar.text_input("Random seed (optional)", value="", key="birthday-seed")
+    seed_text = st.text_input("Random seed (optional)", value="", key="birthday-seed")
     rng_seed = _parse_optional_seed(seed_text)
     return BirthdayParameters(
         bits=bits,
@@ -82,50 +82,49 @@ def birthday_controls(default_bits: int = 16) -> BirthdayParameters:
 
 
 def pollard_controls(default_bits: int = 16) -> PollardParameters:
-    st.sidebar.subheader("Pollard's Rho")
-    bits = st.sidebar.slider("Hash bit length", 8, 32, default_bits, key="pollard-bits")
-    start = st.sidebar.number_input("Start value", min_value=0, max_value=2 ** 16, value=1, step=1, key="pollard-start")
-    max_steps = st.sidebar.number_input(
+    bits = st.slider("Hash bit length", 8, 32, default_bits, key="pollard-bits")
+    start = st.number_input("Start value", min_value=0, max_value=2 ** 16, value=1, step=1, key="pollard-start")
+    max_steps = st.number_input(
         "Max iterations", min_value=10, max_value=500_000, value=10_000, step=100, key="pollard-steps"
     )
     return PollardParameters(bits=bits, start=start, max_steps=max_steps)
 
 
 def avalanche_controls(default_bits: int = 16) -> AvalancheParameters:
-    st.sidebar.subheader("Avalanche Test")
-    bits = st.sidebar.slider("Hash bit length", 8, 32, default_bits, key="avalanche-bits")
-    message_text = st.sidebar.text_area(
+    bits = st.slider("Hash bit length", 8, 32, default_bits, key="avalanche-bits")
+    message_text = st.text_area(
         "Message (ASCII)",
         value="hello world",
         key="avalanche-message",
         help="Message used to evaluate the avalanche effect",
     )
     message = message_text.encode("utf-8")
-    return AvalancheParameters(bits=bits, message=message)
+    total_bits = len(message) * 8
+    sample_bit = st.slider("Sample bit to flip", 0, total_bits - 1, total_bits // 2, key="avalanche-sample-bit")
+    return AvalancheParameters(bits=bits, message=message, sample_bit_index=sample_bit)
 
 
 def length_extension_controls() -> LengthExtensionParameters:
-    st.sidebar.subheader("Length Extension")
-    original = st.sidebar.text_area(
+    original = st.text_area(
         "Original message",
         value="transfer=1000&to=bob",
         key="length-original",
     )
-    append = st.sidebar.text_area(
+    append = st.text_area(
         "Appended data",
         value="&to=mallory",
         key="length-append",
     )
-    key_guess = st.sidebar.number_input(
+    key_guess = st.number_input(
         "Key length guess (bytes)", min_value=0, max_value=128, value=8, step=1, key="length-key-guess"
     )
-    digest = st.sidebar.text_input(
+    digest = st.text_input(
         "Observed digest (hex)",
         value="",
         key="length-digest",
         help="Digest of secret||original message. Provide if known.",
     )
-    secret_text = st.sidebar.text_input(
+    secret_text = st.text_input(
         "(Optional) actual secret to verify",
         value="",
         help="Provide to verify the forged digest matches the real tag",
